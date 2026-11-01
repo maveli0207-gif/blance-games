@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>블록 아레나 - 게이머 밸런스 게임</title>
+  <style>
+    /* ==========================================================================
+       1. CSS VARIABLES & RESET
+       ========================================================================== */
+    :root {
+      /* Roblox 테마 색상 팔레트 */
+      --bg-main: #232527;
+      --bg-darker: #191b1d;
+      --bg-card: #2b2d30;
+      --bg-card-hover: #35383c;
+      --bg-input: #1e2022;
+      --border-color: #3e4247;
+      --border-focus: #335fff;
+      
+      /* 액션 및 강조 색상 */
+      --color-primary: #335fff;
+      --color-primary-hover: #4d74ff;
+      --color-primary-shadow: #193dbb;
+      
+      --color-green: #00b06f;
+      --color-green-hover: #05c47d;
+      --color-green-shadow: #007a4d;
+      
+      --color-orange: #f68802;
+      --color-orange-shadow: #b35e00;
+
+      --color-red: #ff4747;
+      
+      /* 텍스트 색상 */
+      --text-main: #ffffff;
+      --text-muted: #b8bdc4;
+      --text-dark: #191b1d;
+      
+      /* 폰트 및 둥글기 */
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      position: relative;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ==========================================================================
+       2. SUBTLE ANIMATED BLOCK BACKGROUND
+       ========================================================================== */
+    .bg-animated-blocks {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+      opacity: 0.28;
+    }
+
+    .bg-grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    }
+
+    .floating-block {
+      position: absolute;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      animation: floatUp 18s linear infinite;
+    }
+
+    .floating-block:nth-child(1) { width: 50px; height: 50px; left: 8%; animation-duration: 22s; animation-delay: 0s; }
+    .floating-block:nth-child(2) { width: 35px; height: 35px; left: 24%; animation-duration: 16s; animation-delay: 3s; }
+    .floating-block:nth-child(3) { width: 65px; height: 65px; left: 45%; animation-duration: 25s; animation-delay: 7s; }
+    .floating-block:nth-child(4) { width: 40px; height: 40px; left: 68%; animation-duration: 19s; animation-delay: 2s; }
+    .floating-block:nth-child(5) { width: 55px; height: 55px; left: 86%; animation-duration: 24s; animation-delay: 5s; }
+
+    @keyframes floatUp {
+      0% {
+        transform: translateY(110vh) rotate(0deg);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.8;
+      }
+      90% {
+        opacity: 0.8;
+      }
+      100% {
+        transform: translateY(-20vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    /* ==========================================================================
+       3. TOP NAVIGATION BAR
+       ========================================================================== */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 64px;
+      background-color: var(--bg-darker);
+      border-bottom: 2px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+      text-decoration: none;
+      user-select: none;
+      cursor: pointer;
+    }
+
+    .logo-cube {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #335fff, #00b06f);
+      border-radius: 8px;
+      border-bottom: 3px solid #1636b0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(51, 95, 255, 0.5);
+    }
+
+    .logo-cube-inner {
+      width: 14px;
+      height: 14px;
+      background: #ffffff;
+      border-radius: 3px;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      list-style: none;
+    }
+
+    .nav-item {
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .nav-item.active {
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .nav-center {
+      display: flex;
+      align-items: center;
+    }
+
+    .date-range-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--bg-card);
+      border: 2px solid var(--border-color);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.2px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    .date-tag {
+      background: linear-gradient(135deg, var(--color-orange), #ff5500);
+      color: #ffffff;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 900;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-profile-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background-color: var(--bg-card);
+      border: 2px solid var(--border-color);
+      border-radius: 999px;
+      padding: 4px 12px 4px 6px;
+    }
+
+    .avatar-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #335fff, #789aff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 0.9rem;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .user-name-text {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    /* ==========================================================================
+       4. BUTTONS & CHUNKY CONTROLS
+       ========================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: var(--font-family);
+      font-size: 1rem;
+      font-weight: 800;
+      color: #ffffff;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.15s ease;
+      outline: none;
+      text-decoration: none;
+    }
+
+    .btn:active {
+      transform: translateY(3px) !important;
+    }
+
+    .btn-primary {
+      background: linear-gradient(180deg, var(--color-primary-hover) 0%, var(--color-primary) 100%);
+      border-bottom: 4px solid var(--color-primary-shadow);
+      box-shadow: 0 4px 12px rgba(51, 95, 255, 0.35);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 6px 16px rgba(51, 95, 255, 0.5);
+    }
+
+    .btn-primary:active {
+      border-bottom-width: 1px;
+    }
+
+    .btn-green {
+      background: linear-gradient(180deg, var(--color-green-hover) 0%, var(--color-green) 100%);
+      border-bottom: 4px solid var(--color-green-shadow);
+      box-shadow: 0 4px 12px rgba(0, 176, 111, 0.35);
+    }
+
+    .btn-green:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 6px 16px rgba(0, 176, 111, 0.5);
+    }
+
+    .btn-green:active {
+      border-bottom-width: 1px;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      border-bottom: 4px solid #1e2022;
+      color: var(--text-muted);
+    }
+
+    .btn-secondary:hover {
+      color: #ffffff;
+      background: var(--bg-card-hover);
+    }
+
+    .btn-secondary:active {
+      border-bottom-width: 1px;
+    }
+
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ==========================================================================
+       5. MAIN CONTAINER & SCREEN ROUTER
+       ========================================================================== */
+    .app-main {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .screen-view {
+      display: none;
+      width: 100%;
+      animation: fadeInScreen 0.25s ease-out forwards;
+    }
+
+    .screen-view.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    @keyframes fadeInScreen {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ==========================================================================
+       6. SCREEN 1: LOGIN & SIGN-UP
+       ========================================================================== */
+    .login-container {
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .roblox-card {
+      background-color: var(--bg-card);
+      border: 3px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 32px 28px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      position: relative;
+    }
+
+    .card-header-logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .card-header-logo .cube-big {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 12px;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-green));
+      border-radius: 14px;
+      border-bottom: 4px solid #1636b0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 16px rgba(51, 95, 255, 0.4);
+    }
+
+    .card-header-logo h1 {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .card-header-logo p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background-color: var(--bg-input);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      margin-bottom: 24px;
+      border: 2px solid var(--border-color);
+    }
+
+    .auth-tab-btn {
+      padding: 10px;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .auth-tab-btn.active {
+      background-color: var(--bg-card);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+
+    .form-input {
+      width: 100%;
+      height: 48px;
+      background-color: var(--bg-input);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0 16px;
+      color: #ffffff;
+      font-family: var(--font-family);
+      font-size: 0.95rem;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(51, 95, 255, 0.25);
+    }
+
+    .form-input::placeholder {
+      color: #636870;
+    }
+
+    .auth-error-msg {
+      display: none;
+      background: rgba(255, 71, 71, 0.15);
+      border: 2px solid var(--color-red);
+      color: #ff9494;
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      text-align: left;
+    }
+
+    .auth-error-msg.visible {
+      display: block;
+      animation: shake 0.3s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+
+    .auth-submit-btn {
+      width: 100%;
+      height: 50px;
+      font-size: 1.05rem;
+      margin-top: 6px;
+    }
+
+    /* ==========================================================================
+       7. SCREEN 2: GAME QUESTION & CHOICES
+       ========================================================================== */
+    .game-container {
+      width: 100%;
+      max-width: 960px;
+    }
+
+    .progress-bar-wrap {
+      width: 100%;
+      height: 12px;
+      background-color: var(--bg-input);
+      border: 2px solid var(--border-color);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 20%;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-green));
+      border-radius: 999px;
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .game-status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: var(--bg-card);
+      border: 2px solid var(--border-color);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-muted);
+    }
+
+    .question-count-text {
+      font-size: 0.95rem;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .question-card {
+      background-color: var(--bg-card);
+      border: 3px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      text-align: center;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+
+    .question-topic-tag {
+      display: inline-block;
+      background: rgba(51, 95, 255, 0.18);
+      border: 1px solid rgba(51, 95, 255, 0.4);
+      color: #7ba3ff;
+      font-size: 0.8rem;
+      font-weight: 900;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .question-title {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.35;
+      word-break: keep-all;
+    }
+
+    /* 3D 틸트 및 인터랙션 컨테이너 */
+    .choices-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      width: 100%;
+      perspective: 1200px;
+      margin-bottom: 24px;
+    }
+
+    .choice-card {
+      position: relative;
+      background-color: var(--bg-card);
+      border: 3px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transform-style: preserve-3d;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+
+      /* 부드러운 0.2s ease-out 전환 */
+      transition: 
+        transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.2s ease-out,
+        border-color 0.2s ease-out,
+        opacity 0.2s ease-out,
+        filter 0.2s ease-out;
+    }
+
+    /* Choice A 호버 & 모바일 :active (약 -5도 회전, 1.08 배율 확대, 블루 글로우) */
+    .choice-card.choice-a:hover,
+    .choice-card.choice-a:active {
+      transform: perspective(1000px) rotate(-5deg) scale(1.08);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.65), 0 0 28px rgba(51, 95, 255, 0.7);
+      border-color: #335fff;
+      z-index: 10;
+    }
+
+    /* Choice B 호버 & 모바일 :active (약 +5도 회전, 1.08 배율 확대, 그린 글로우) */
+    .choice-card.choice-b:hover,
+    .choice-card.choice-b:active {
+      transform: perspective(1000px) rotate(5deg) scale(1.08);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.65), 0 0 28px rgba(0, 176, 111, 0.7);
+      border-color: #00b06f;
+      z-index: 10;
+    }
+
+    /* 반대편 카드가 어두워지거나 살짝 축소되는 효과 */
+    .choices-container:has(.choice-card.choice-a:hover) .choice-card.choice-b,
+    .choices-container:has(.choice-card.choice-b:hover) .choice-card.choice-a,
+    .choices-container:has(.choice-card.choice-a:active) .choice-card.choice-b,
+    .choices-container:has(.choice-card.choice-b:active) .choice-card.choice-a {
+      opacity: 0.55;
+      transform: perspective(1000px) scale(0.95);
+      filter: grayscale(20%);
+    }
+
+    .choice-card.is-dimmed {
+      opacity: 0.55 !important;
+      transform: perspective(1000px) scale(0.95) !important;
+      filter: grayscale(20%) !important;
+    }
+
+    .choice-card.is-selected {
+      border-color: #00ffaa !important;
+      box-shadow: 0 0 32px rgba(0, 255, 170, 0.8) !important;
+      transform: scale(1.04) !important;
+    }
+
+    .card-thumbnail {
+      width: 100%;
+      height: 180px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 16px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .thumbnail-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 900;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      z-index: 2;
+    }
+
+    .badge-a {
+      background: linear-gradient(135deg, var(--color-primary), #1a3fb3);
+    }
+
+    .badge-b {
+      background: linear-gradient(135deg, var(--color-green), #00774a);
+    }
+
+    .choice-title {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 8px;
+      line-height: 1.3;
+      word-break: keep-all;
+    }
+
+    .choice-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-bottom: 18px;
+      flex: 1;
+      word-break: keep-all;
+    }
+
+    .choice-btn {
+      width: 100%;
+      height: 44px;
+      font-size: 0.95rem;
+    }
+
+    .reaction-panel {
+      display: none;
+      width: 100%;
+      background-color: var(--bg-card);
+      border: 3px solid #00b06f;
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-top: 10px;
+      box-shadow: 0 8px 24px rgba(0, 176, 111, 0.25);
+      animation: popReaction 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .reaction-panel.visible {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    @keyframes popReaction {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .reaction-text-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .reaction-icon {
+      font-size: 1.8rem;
+    }
+
+    .reaction-title {
+      font-size: 1rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+
+    .reaction-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       8. SCREEN 3: SUMMARY RECAP
+       ========================================================================== */
+    .summary-container {
+      width: 100%;
+      max-width: 780px;
+    }
+
+    .summary-card {
+      background-color: var(--bg-card);
+      border: 3px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 32px 28px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      text-align: center;
+    }
+
+    .summary-hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, rgba(51, 95, 255, 0.2), rgba(0, 176, 111, 0.2));
+      border: 2px solid var(--color-green);
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 900;
+      color: #00ffaa;
+      margin-bottom: 16px;
+    }
+
+    .summary-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .summary-archetype {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-green));
+      color: #ffffff;
+      padding: 8px 24px;
+      border-radius: 999px;
+      font-size: 1.15rem;
+      font-weight: 900;
+      margin: 12px 0 24px;
+      box-shadow: 0 4px 16px rgba(0, 176, 111, 0.35);
+      border-bottom: 3px solid #00774a;
+    }
+
+    .summary-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin: 24px 0 32px;
+      text-align: left;
+    }
+
+    .summary-item {
+      background-color: var(--bg-input);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .summary-item-left {
+      flex: 1;
+    }
+
+    .summary-item-q {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .summary-item-ans {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .summary-item-tag {
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .tag-choice-a {
+      background-color: rgba(51, 95, 255, 0.2);
+      border: 1px solid var(--color-primary);
+      color: #7ba3ff;
+    }
+
+    .tag-choice-b {
+      background-color: rgba(0, 176, 111, 0.2);
+      border: 1px solid var(--color-green);
+      color: #00ffaa;
+    }
+
+    .summary-actions {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    /* ==========================================================================
+       9. RESPONSIVE DESIGN (모바일 대응)
+       ========================================================================== */
+    @media (max-width: 768px) {
+      .top-nav {
+        padding: 0 16px;
+      }
+
+      .nav-menu {
+        display: none;
+      }
+
+      .date-range-badge {
+        font-size: 0.78rem;
+        padding: 4px 10px;
+      }
+
+      .choices-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .choice-card.choice-a:hover,
+      .choice-card.choice-a:active {
+        transform: perspective(1000px) rotate(-3deg) scale(1.04);
+      }
+
+      .choice-card.choice-b:hover,
+      .choice-card.choice-b:active {
+        transform: perspective(1000px) rotate(3deg) scale(1.04);
+      }
+
+      .question-title {
+        font-size: 1.3rem;
+      }
+
+      .card-thumbnail {
+        height: 150px;
+      }
+
+      .reaction-panel.visible {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .reaction-text-wrap {
+        flex-direction: column;
+        gap: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 배경 애니메이션 블록 패턴 -->
+  <div class="bg-animated-blocks">
+    <div class="bg-grid-overlay"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+  </div>
+
+  <!-- 상단 네비게이션 바 -->
+  <header class="top-nav">
+    <div class="nav-left">
+      <div class="nav-logo" id="navLogo">
+        <div class="logo-cube">
+          <div class="logo-cube-inner"></div>
+        </div>
+        <span>블록 아레나</span>
+      </div>
+
+      <ul class="nav-menu">
+        <li class="nav-item active">밸런스 게임</li>
+        <li class="nav-item">인기 게임</li>
+        <li class="nav-item">아바타 상점</li>
+        <li class="nav-item">리더보드</li>
+      </ul>
+    </div>
+
+    <div class="nav-center">
+      <!-- 상단 날짜 범위 (자동 계산 및 상수 설정 지원) -->
+      <div class="date-range-badge" title="현재 시즌 이벤트 기간">
+        <span class="date-tag">시즌 기간</span>
+        <span id="dateRangeText">10/1 ~ 10/10</span>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <!-- 로그인 상태에 따른 프로필 영역 -->
+      <div id="navUserArea" style="display: none; align-items: center; gap: 10px;">
+        <div class="user-profile-badge">
+          <div class="avatar-icon" id="userAvatarChar">B</div>
+          <span class="user-name-text" id="navUserName">게이머</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btnLogout" type="button">로그아웃</button>
+      </div>
+      
+      <div id="navGuestArea">
+        <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">게스트 모드</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 뷰 컨테이너 (단일 페이지 라우터) -->
+  <main class="app-main">
+
+    <!-- 화면 1: 로그인 & 회원가입 화면 -->
+    <section id="screen-login" class="screen-view login-container active">
+      <div class="roblox-card">
+        <div class="card-header-logo">
+          <div class="cube-big">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+          </div>
+          <h1>블록 아레나 접속</h1>
+          <p>계정으로 로그인하여 밸런스 게임에 참여하세요!</p>
+        </div>
+
+        <div class="auth-tabs">
+          <button class="auth-tab-btn active" id="tabBtnLogin" type="button">로그인</button>
+          <button class="auth-tab-btn" id="tabBtnSignup" type="button">회원가입</button>
+        </div>
+
+        <div class="auth-error-msg" id="authErrorMsg"></div>
+
+        <form id="authForm" autocomplete="off">
+          <div class="form-group">
+            <label class="form-label" for="inputUsername">사용자 이름 (아이디)</label>
+            <input 
+              type="text" 
+              id="inputUsername" 
+              class="form-input" 
+              placeholder="예: BloxMaster" 
+              maxlength="20"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inputPassword">비밀번호</label>
+            <input 
+              type="password" 
+              id="inputPassword" 
+              class="form-input" 
+              placeholder="4자 이상 입력" 
+              required
+            >
+          </div>
+
+          <button type="submit" class="btn btn-primary auth-submit-btn" id="btnAuthSubmit">
+            로그인하기
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 화면 2: 질문 및 밸런스 선택 화면 -->
+    <section id="screen-game" class="screen-view game-container">
+      <div class="game-header">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+        <div class="game-status-row">
+          <div class="status-badge">
+            <span style="color: #00ffaa;">●</span> LIVE 밸런스 토론
+          </div>
+          <div class="question-count-text">
+            진행도: <span id="currentQuestionNum" style="color: #335fff;">1</span> / <span id="totalQuestionsNum">5</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="question-topic-tag" id="questionCategory">게이머 밸런스 #1</div>
+        <h2 class="question-title" id="questionText">질문 불러오는 중...</h2>
+      </div>
+
+      <!-- 2개 선택지 (Choice A & Choice B) -->
+      <div class="choices-container" id="choicesContainer">
+        
+        <!-- Choice A 카드 -->
+        <div class="choice-card choice-a" id="cardChoiceA" data-choice="A">
+          <div class="card-thumbnail" id="thumbChoiceA">
+            <span class="thumbnail-badge badge-a">선택 A</span>
+            <div id="svgContainerA" style="width: 100%; height: 100%;"></div>
+          </div>
+          <h3 class="choice-title" id="titleChoiceA">선택지 A</h3>
+          <p class="choice-desc" id="descChoiceA">선택지 A에 대한 설명입니다.</p>
+          <button class="btn btn-primary choice-btn" type="button">선택하기 (A)</button>
+        </div>
+
+        <!-- Choice B 카드 -->
+        <div class="choice-card choice-b" id="cardChoiceB" data-choice="B">
+          <div class="card-thumbnail" id="thumbChoiceB">
+            <span class="thumbnail-badge badge-b">선택 B</span>
+            <div id="svgContainerB" style="width: 100%; height: 100%;"></div>
+          </div>
+          <h3 class="choice-title" id="titleChoiceB">선택지 B</h3>
+          <p class="choice-desc" id="descChoiceB">선택지 B에 대한 설명입니다.</p>
+          <button class="btn btn-green choice-btn" type="button">선택하기 (B)</button>
+        </div>
+
+      </div>
+
+      <!-- 선택 후 즉각 반응/리액션 알림 패널 -->
+      <div class="reaction-panel" id="reactionPanel">
+        <div class="reaction-text-wrap">
+          <div class="reaction-icon" id="reactionIcon">⚡</div>
+          <div>
+            <div class="reaction-title" id="reactionTitle">선택 완료!</div>
+            <div class="reaction-subtitle" id="reactionSubtitle">게이머 의견이 집계되었습니다.</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btnNextQuestion" type="button">다음 질문으로 →</button>
+      </div>
+    </section>
+
+    <!-- 화면 3: 결과 요약 화면 -->
+    <section id="screen-summary" class="screen-view summary-container">
+      <div class="summary-card">
+        <div class="summary-hero-badge">🏆 밸런스 테스트 완료</div>
+        <h2 class="summary-title"><span id="summaryUserName">게이머</span>님의 플레이 스타일</h2>
+        <div>
+          <span class="summary-archetype" id="summaryArchetype">자유로운 전설의 모험가</span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+          총 5가지 게이머 난제에 대해 당신이 내린 최종 선택입니다:
+        </p>
+
+        <!-- 선택 목록 리스트 -->
+        <div class="summary-list" id="summaryList"></div>
+
+        <div class="summary-actions">
+          <button class="btn btn-green" id="btnRestart" type="button" style="padding: 14px 32px; font-size: 1.1rem;">
+            🔄 다시 플레이하기
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================================================
+       JAVASCRIPT: 구조화된 단일 파일 로직
+       ========================================================================== */ -->
+  <script>
+    /* ==========================================================================
+       SECTION 1: 환경 설정 및 상수 (CONFIG)
+       - 상단 날짜 범위 시작일을 여기서 쉽게 변경할 수 있습니다.
+       ========================================================================== */
+    const CONFIG = {
+      // 시작 날짜 설정 (null 이면 이번 달 1일로 자동 계산, 예: "10/1" 또는 "2026-10-01")
+      CUSTOM_START_DATE: null,
+      
+      // 로컬 스토리지 키
+      STORAGE_KEY_USERS: "blox_arena_users_v1",
+      STORAGE_KEY_SESSION: "blox_arena_session_v1",
+      
+      // 질문 전환 딜레이 (ms)
+      AUTO_ADVANCE_DELAY: 1400
+    };
+
+    /* ==========================================================================
+       SECTION 2: 질문 데이터 (QUESTIONS DATA)
+       - 게이머 중심 5가지 밸런스 게임 질문 배열
+       ========================================================================== */
+    const QUESTIONS_DATA = [
+      {
+        id: 1,
+        category: "게이머 탐험 본능 #1",
+        question: "신작 대작 RPG를 처음 시작할 때, 당신의 공략 스타일은?",
+        choiceA: {
+          title: "직감 탐험 모험가",
+          desc: "공략집 없이 맨땅에 헤딩! 숨겨진 비밀 통로와 보물상자를 오직 내 직감으로 직접 찾아낸다.",
+          svg: `
+            <svg viewBox="0 0 200 140" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="gradA1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#1e3c72" />
+                  <stop offset="100%" stop-color="#2a5298" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gradA1)"/>
+              <polygon points="100,25 150,55 100,85 50,55" fill="#4d7eff" />
+              <polygon points="50,55 100,85 100,125 50,95" fill="#2955c8" />
+              <polygon points="150,55 100,85 100,125 150,95" fill="#1b3f9e" />
+              <polygon points="100,45 105,55 118,55 107,63 111,75 100,67 89,75 93,63 82,55 95,55" fill="#ffea79"/>
+            </svg>
+          `
+        },
+        choiceB: {
+          title: "완벽 공략 전략가",
+          desc: "첫날부터 최고 효율 가이드와 0티어 최적화 빌드 장착! 단 1초의 낭비도 없이 100% 클리어한다.",
+          svg: `
+            <svg viewBox="0 0 200 140" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="gradB1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#0b486b" />
+                  <stop offset="100%" stop-color="#f56217" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gradB1)"/>
+              <polygon points="100,25 145,50 100,75 55,50" fill="#00e676" />
+              <polygon points="55,50 100,75 100,120 55,95" fill="#00b06f" />
+              <polygon points="145,50 100,75 100,120 145,95" fill="#008151" />
+              <polygon points="105,40 90,62 102,62 95,85 115,58 102,58" fill="#ffffff"/>
+            </svg>
+          `
+        },
+        reactionA: {
+          icon: "🧭",
+          title: "순수 모험가의 영혼!",
+          subtitle: "게이머의 64%가 첫 회차는 공략 없는 낭만을 선호합니다."
+        },
+        reactionB: {
+          icon: "⚡",
+          title: "치밀한 효율의 지배자!",
+          subtitle: "게이머의 36%가 완벽한 0티어 빌드로 쾌감을 느낍니다."
+        }
+      },
+      {
+        id: 2,
+        category: "게임 신의 특전 #2",
+        question: "게임의 신이 평생 지속되는 단 하나의 능력을 선물한다면?",
+        choiceA: {
+          title: "무한 인벤토리 & 0초 로딩",
+          desc: "가방 무게 및 슬롯 제한 무한대! 맵 이동 시 렉과 로딩 화면이 영원히 사라지는 쾌적함의 극치.",
+          svg: `
+            <svg viewBox="0 0 200 140" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="gradA2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#2c3e50" />
+                  <stop offset="100%" stop-color="#3498db" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gradA2)"/>
+              <polygon points="100,20 150,48 100,76 50,48" fill="#38ef7d" />
+              <polygon points="50,48 100,76 100,122 50,94" fill="#11998e" />
+              <polygon points="150,48 100,76 100,122 150,94" fill="#0e7c73" />
+              <circle cx="85" cy="50" r="8" fill="none" stroke="#ffffff" stroke-width="4"/>
+              <circle cx="115" cy="50" r="8" fill="none" stroke="#ffffff" stroke-width="4"/>
+            </svg>
+          `
+        },
+        choiceB: {
+          title: "확률 조작 뽑기 100% 당첨",
+          desc: "모든 확률형 아이템, 가챠, 전설 무기 드롭률 무조건 최고 등급 1티어로 첫 판에 즉시 당첨!",
+          svg: `
+            <svg viewBox="0 0 200 140" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="gradB2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#654ea3" />
+                  <stop offset="100%" stop-color="#eaafc8" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gradB2)"/>
+              <polygon points="100,20 148,46 100,72 52,46" fill="#ffd700" />
+              <polygon points="52,46 100,72 100,120 52,94" fill="#d4af37" />
+              <polygon points="148,46 100,72 100,120 148,94" fill="#aa8c2c" />
+              <circle cx="100" cy="46" r="10" fill="#ffffff"/>
+            </svg>
+          `
+        },
+        reactionA: {
+          icon: "🎒",
+          title: "가방 정리 스트레스 제로!",
+          subtitle: "게이머 52%가 쾌적한 시스템 편의성을 선택했습니다."
+        },
+        reactionB: {
+          icon: "🎰",
+          title: "확률의 절대신 강림!",
+          subtitle: "게이머 48%가 억만금을 아끼는 전설 뽑기를 선택했습니다."
+        }
+      },
+      {
+        id: 3,
+        category: "멀티플레이 협동 포지션 #3",
+        question: "친구들과 4인 파티 협동 보스전을 뛸 때, 당신의 포지션은?",
+        choiceA: {
+          title: "철벽 방패 메인 탱커",
+          desc: "보스의 모든 무시무시한 광역 공격을 온몸으로 받아내며 최전방에서 파티원을 든든하게 지켜낸다.",
+          svg: `
+            <svg viewBox="0 0 200 140" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="gradA3" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#141e30" />
+                  <stop offset="100%" stop-color="#243b55" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gradA3)"/>
+              <polygon points="100,18 145,42 100,66 55,42" fill="#5c6bc0" />
+              <polygon points="55,42 100,66 100,122 55,96" fill="#3949ab" />
+              <polygon points="145,42 100,66 100,122 145,96" fill="#283593" />
+              <path d="M100,42 L115,50 L115,70 Q100,85 100,88 Q100,85 85,70 L85,50 Z" fill="#ffffff"/>
+            </svg>
+          `
+        },
+        choiceB: {
+          title: "초극딜 캐리 머신",
+          desc: "화려한 스킬 연계와 폭발적인 누적 딜링으로 보스의 체력을 순식간에 녹이며 딜미터기 1위를 차지한다.",
+          svg: `
+            <svg viewBox="0 0 200 140" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="gradB3" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#8a2387" />
+                  <stop offset="100%" stop-color="#e94057" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gradB3)"/>
+              <polygon points="100,20 145,45 100,70 55,45" fill="#ff0844" />
+              <polygon points="55,45 100,70 100,120 55,95" fill="#cc0033" />
+              <polygon points="145,45 100,70 100,120 145,95" fill="#990026" />
+              <polygon points="98,35 102,35 102,65 98,65" fill="#ffffff"/>
+              <polygon points="85,45 115,45 115,48 85,48" fill="#ffffff"/>
+            </svg>
+          `
+        },
+        reactionA: {
+          icon: "🛡️",
+          title: "팀의 기둥, 진정한 리더!",
+          subtitle: "게이머 41%가 당신처럼 파티를 수호하는 탱커를 존경합니다."
+        },
+        reactionB: {
+          icon: "💥",
+          title: "폭풍 딜링, 전장의 에이스!",
+          subtitle: "게이머 59%가 화려한 딜러로 캐리하는 맛을 최고로 꼽습니다."
+        }
+      },
+      {
+        id: 4,
+        category: "평생의 장르 선택 #4",
+        question: "무인도에 갇혀 평생 단 한 가지 장르만 플레이할 수 있다면?",
+        choiceA: {
+          title: "자유도 만렙 샌드박스 & 건축",
+          desc: "블록 하나하나로 도시와 세계를 창조하는 무한한 자유도! 상상하는 모든 것을 구현할 수 있다.",
+          svg: `
+            <svg viewBox="0 0 200 140" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="gradA4" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#134e5e" />
+                  <stop offset="100%" stop-color="#71b280" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gradA4)"/>
+              <polygon points="100,22 140,44 100,66 60,44" fill="#8bc34a" />
+              <polygon points="60,44 100,66 100,116 60,94" fill="#795548" />
+              <polygon points="140,44 100,66 100,116 140,94" fill="#5d4037" />
+              <polygon points="60,44 100,66 100,78 60,56" fill="#689f38"/>
+              <polygon points="140,44 100,66 100,78 140,56" fill="#558b2f"/>
+            </svg>
+          `
+        },
+        choiceB: {
+          title: "숨막히는 실시간 배틀로얄 PvP",
+          desc: "100명의 플레이어 중 최후의 1인이 되기 위한 치열한 두뇌 싸움과 극도의 긴장감 넘치는 생존 승부!",
+          svg: `
+            <svg viewBox="0 0 200 140" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="gradB4" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#434343" />
+                  <stop offset="100%" stop-color="#000000" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gradB4)"/>
+              <polygon points="100,20 145,45 100,70 55,45" fill="#ff5722" />
+              <polygon points="55,45 100,70 100,120 55,95" fill="#d84315" />
+              <polygon points="145,45 100,70 100,120 145,95" fill="#bf360c" />
+              <circle cx="100" cy="55" r="14" fill="none" stroke="#ffffff" stroke-width="3"/>
+              <line x1="100" y1="36" x2="100" y2="74" stroke="#ffffff" stroke-width="2"/>
+              <line x1="81" y1="55" x2="119" y2="55" stroke="#ffffff" stroke-width="2"/>
+            </svg>
+          `
+        },
+        reactionA: {
+          icon: "🏰",
+          title: "무한한 창의력의 세계!",
+          subtitle: "게이머 61%가 질리지 않는 샌드박스의 자유도를 택했습니다."
+        },
+        reactionB: {
+          icon: "👑",
+          title: "심장을 뛰게 하는 진검승부!",
+          subtitle: "게이머 39%가 1위 달성의 도파민 폭발을 선택했습니다."
+        }
+      },
+      {
+        id: 5,
+        category: "개발자의 이스터에그 #5",
+        question: "직접 게임 개발자가 되어 게임 속에 단 하나의 비밀을 숨긴다면?",
+        choiceA: {
+          title: "비밀 방의 전설 조각상",
+          desc: "맵 구석의 보이지 않는 벽을 뚫으면 발견되는 나만의 황금 캐릭터 조각상과 개발 비하인드 스토리.",
+          svg: `
+            <svg viewBox="0 0 200 140" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="gradA5" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#3a1c71" />
+                  <stop offset="100%" stop-color="#d76d77" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gradA5)"/>
+              <polygon points="100,20 140,42 100,64 60,42" fill="#ffd54f" />
+              <polygon points="60,42 100,64 100,118 60,96" fill="#ffca28" />
+              <polygon points="140,42 100,64 100,118 140,96" fill="#ffb300" />
+              <circle cx="100" cy="50" r="8" fill="#ffffff"/>
+            </svg>
+          `
+        },
+        choiceB: {
+          title: "비밀 커맨드 전원 막춤 치트키",
+          desc: "특정 커맨드를 입력하면 무시무시한 최종 보스와 몬스터들이 갑자기 디스코 댄스를 추는 폭소 치트키.",
+          svg: `
+            <svg viewBox="0 0 200 140" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="gradB5" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#11998e" />
+                  <stop offset="100%" stop-color="#38ef7d" />
+                </linearGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gradB5)"/>
+              <polygon points="100,20 142,44 100,68 58,44" fill="#00f2fe" />
+              <polygon points="58,44 100,68 100,118 58,94" fill="#4facfe" />
+              <polygon points="142,44 100,68 100,118 142,94" fill="#0072ff" />
+              <path d="M92,54 L92,38 L112,34 L112,50 M92,54 A5,5 0 1,1 82,54 A5,5 0 1,1 92,54 M112,50 A5,5 0 1,1 102,50 A5,5 0 1,1 112,50" fill="#ffffff"/>
+            </svg>
+          `
+        },
+        reactionA: {
+          icon: "🗿",
+          title: "전설로 남을 개발자의 자부심!",
+          subtitle: "게이머 45%가 감동적인 숨은 비밀의 성지순례를 좋아합니다."
+        },
+        reactionB: {
+          icon: "🎉",
+          title: "대유쾌 마인드 유튜브 1위 밈!",
+          subtitle: "게이머 55%가 빵 터지는 유머러스한 치트키를 택했습니다."
+        }
+      }
+    ];
+
+    /* ==========================================================================
+       SECTION 3: 상태 관리 (STATE MANAGEMENT)
+       ========================================================================== */
+    const AppState = {
+      currentUser: null,
+      currentQuestionIndex: 0,
+      userPicks: [],
+      isAnswering: false,
+      
+      resetGame() {
+        this.currentQuestionIndex = 0;
+        this.userPicks = [];
+        this.isAnswering = false;
+      }
+    };
+
+    /* ==========================================================================
+       SECTION 4: 비밀번호 해싱 및 로컬 인증 서비스
+       ========================================================================== */
+    const AuthService = {
+      async hashPassword(password) {
+        const salt = "_blox_arena_2026";
+        try {
+          if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password + salt);
+            const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+          }
+        } catch (e) {
+          console.warn("crypto.subtle 사용 불가 - 대체 해시 함수를 적용합니다.", e);
+        }
+
+        // 대체 해시 (Deterministic 문자열 해시)
+        let hash1 = 5381;
+        let hash2 = 52711;
+        const combined = password + salt;
+        for (let i = 0; i < combined.length; i++) {
+          const char = combined.charCodeAt(i);
+          hash1 = ((hash1 << 5) + hash1) ^ char;
+          hash2 = ((hash2 << 5) + hash2) ^ char;
+        }
+        return "fallback_" + Math.abs(hash1).toString(16) + Math.abs(hash2).toString(16);
+      },
+
+      getUsers() {
+        try {
+          const data = localStorage.getItem(CONFIG.STORAGE_KEY_USERS);
+          return data ? JSON.parse(data) : {};
+        } catch (e) {
+          console.error("로컬 스토리지 읽기 에러:", e);
+          return {};
+        }
+      },
+
+      saveUsers(users) {
+        try {
+          localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(users));
+        } catch (e) {
+          console.error("로컬 스토리지 저장 에러:", e);
+        }
+      },
+
+      async signup(username, password) {
+        const cleanName = username.trim();
+        const users = this.getUsers();
+
+        if (users[cleanName.toLowerCase()]) {
+          throw new Error("이미 사용 중인 사용자 이름입니다. 다른 이름을 입력해 주세요.");
+        }
+
+        const passwordHash = await this.hashPassword(password);
+        users[cleanName.toLowerCase()] = {
+          displayName: cleanName,
+          passwordHash: passwordHash,
+          createdAt: new Date().toISOString()
+        };
+
+        this.saveUsers(users);
+        this.setSession(cleanName);
+        return cleanName;
+      },
+
+      async login(username, password) {
+        const cleanName = username.trim();
+        const users = this.getUsers();
+        const user = users[cleanName.toLowerCase()];
+
+        if (!user) {
+          throw new Error("존재하지 않는 아이디이거나 비밀번호가 일치하지 않습니다.");
+        }
+
+        const passwordHash = await this.hashPassword(password);
+        if (user.passwordHash !== passwordHash) {
+          throw new Error("아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
+
+        this.setSession(user.displayName);
+        return user.displayName;
+      },
+
+      setSession(username) {
+        try {
+          localStorage.setItem(CONFIG.STORAGE_KEY_SESSION, username);
+        } catch (e) {}
+      },
+
+      getSession() {
+        try {
+          return localStorage.getItem(CONFIG.STORAGE_KEY_SESSION);
+        } catch (e) {
+          return null;
+        }
+      },
+
+      logout() {
+        try {
+          localStorage.removeItem(CONFIG.STORAGE_KEY_SESSION);
+        } catch (e) {}
+      }
+    };
+
+    /* ==========================================================================
+       SECTION 5: 화면 라우터 (SCREEN ROUTER)
+       ========================================================================== */
+    const ScreenRouter = {
+      screens: {
+        login: document.getElementById("screen-login"),
+        game: document.getElementById("screen-game"),
+        summary: document.getElementById("screen-summary")
+      },
+
+      registerScreen(name, element) {
+        this.screens[name] = element;
+      },
+
+      show(screenName) {
+        Object.keys(this.screens).forEach(name => {
+          const el = this.screens[name];
+          if (el) {
+            if (name === screenName) {
+              el.classList.add("active");
+            } else {
+              el.classList.remove("active");
+            }
+          }
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+
+    /* ==========================================================================
+       SECTION 6: 날짜 계산 유틸리티
+       ========================================================================== */
+    function computeDateRange() {
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentDay = now.getDate();
+
+      let startDateStr = `${currentMonth}/1`;
+      if (CONFIG.CUSTOM_START_DATE) {
+        startDateStr = CONFIG.CUSTOM_START_DATE;
+      }
+
+      const todayStr = `${currentMonth}/${currentDay}`;
+      return `${startDateStr} ~ ${todayStr}`;
+    }
+
+    /* ==========================================================================
+       SECTION 7: 게임 컨트롤러 & 렌더러
+       ========================================================================== */
+    const GameController = {
+      init() {
+        this.bindEvents();
+      },
+
+      bindEvents() {
+        document.getElementById("cardChoiceA").addEventListener("click", () => {
+          this.handleChoiceSelect("A");
+        });
+
+        document.getElementById("cardChoiceB").addEventListener("click", () => {
+          this.handleChoiceSelect("B");
+        });
+
+        // 폴백 호버 딤 효과
+        const cardA = document.getElementById("cardChoiceA");
+        const cardB = document.getElementById("cardChoiceB");
+
+        cardA.addEventListener("mouseenter", () => {
+          if (!AppState.isAnswering) cardB.classList.add("is-dimmed");
+        });
+        cardA.addEventListener("mouseleave", () => {
+          cardB.classList.remove("is-dimmed");
+        });
+
+        cardB.addEventListener("mouseenter", () => {
+          if (!AppState.isAnswering) cardA.classList.add("is-dimmed");
+        });
+        cardB.addEventListener("mouseleave", () => {
+          cardA.classList.remove("is-dimmed");
+        });
+
+        document.getElementById("btnNextQuestion").addEventListener("click", () => {
+          this.nextQuestion();
+        });
+
+        document.getElementById("btnRestart").addEventListener("click", () => {
+          this.restartGame();
+        });
+      },
+
+      renderCurrentQuestion() {
+        const qIndex = AppState.currentQuestionIndex;
+        const total = QUESTIONS_DATA.length;
+        const currentQ = QUESTIONS_DATA[qIndex];
+
+        const progressPercent = ((qIndex + 1) / total) * 100;
+        document.getElementById("progressBarFill").style.width = `${progressPercent}%`;
+        document.getElementById("currentQuestionNum").textContent = (qIndex + 1);
+        document.getElementById("totalQuestionsNum").textContent = total;
+
+        document.getElementById("questionCategory").textContent = currentQ.category;
+        document.getElementById("questionText").textContent = currentQ.question;
+
+        document.getElementById("titleChoiceA").textContent = currentQ.choiceA.title;
+        document.getElementById("descChoiceA").textContent = currentQ.choiceA.desc;
+        document.getElementById("svgContainerA").innerHTML = currentQ.choiceA.svg;
+
+        document.getElementById("titleChoiceB").textContent = currentQ.choiceB.title;
+        document.getElementById("descChoiceB").textContent = currentQ.choiceB.desc;
+        document.getElementById("svgContainerB").innerHTML = currentQ.choiceB.svg;
+
+        const cardA = document.getElementById("cardChoiceA");
+        const cardB = document.getElementById("cardChoiceB");
+        cardA.classList.remove("is-selected", "is-dimmed");
+        cardB.classList.remove("is-selected", "is-dimmed");
+        cardA.style.pointerEvents = "auto";
+        cardB.style.pointerEvents = "auto";
+
+        const reactionPanel = document.getElementById("reactionPanel");
+        reactionPanel.classList.remove("visible");
+
+        AppState.isAnswering = false;
+      },
+
+      handleChoiceSelect(pick) {
+        if (AppState.isAnswering) return;
+        AppState.isAnswering = true;
+
+        const currentQ = QUESTIONS_DATA[AppState.currentQuestionIndex];
+        AppState.userPicks.push({
+          questionId: currentQ.id,
+          question: currentQ.question,
+          picked: pick,
+          choiceInfo: pick === "A" ? currentQ.choiceA : currentQ.choiceB
+        });
+
+        const cardA = document.getElementById("cardChoiceA");
+        const cardB = document.getElementById("cardChoiceB");
+
+        if (pick === "A") {
+          cardA.classList.add("is-selected");
+          cardB.classList.add("is-dimmed");
+        } else {
+          cardB.classList.add("is-selected");
+          cardA.classList.add("is-dimmed");
+        }
+        cardA.style.pointerEvents = "none";
+        cardB.style.pointerEvents = "none";
+
+        const reactionInfo = pick === "A" ? currentQ.reactionA : currentQ.reactionB;
+        document.getElementById("reactionIcon").textContent = reactionInfo.icon;
+        document.getElementById("reactionTitle").textContent = `${pick} 선택! ${reactionInfo.title}`;
+        document.getElementById("reactionSubtitle").textContent = reactionInfo.subtitle;
+
+        const reactionPanel = document.getElementById("reactionPanel");
+        reactionPanel.classList.add("visible");
+
+        if (this.advanceTimer) clearTimeout(this.advanceTimer);
+        this.advanceTimer = setTimeout(() => {
+          this.nextQuestion();
+        }, CONFIG.AUTO_ADVANCE_DELAY);
+      },
+
+      nextQuestion() {
+        if (this.advanceTimer) clearTimeout(this.advanceTimer);
+
+        if (AppState.currentQuestionIndex + 1 < QUESTIONS_DATA.length) {
+          AppState.currentQuestionIndex++;
+          this.renderCurrentQuestion();
+        } else {
+          this.showSummary();
+        }
+      },
+
+      showSummary() {
+        document.getElementById("summaryUserName").textContent = AppState.currentUser || "게이머";
+
+        const aCount = AppState.userPicks.filter(p => p.picked === "A").length;
+        let archetype = "균형 잡힌 하이브리드 플레이어";
+        if (aCount >= 4) {
+          archetype = "자유로운 낭만의 야생 모험가 🌟";
+        } else if (aCount === 3) {
+          archetype = "치밀하고 창의적인 올라운더 🎮";
+        } else if (aCount <= 1) {
+          archetype = "극단적 효율의 전설 승부사 ⚡";
+        } else {
+          archetype = "전장을 지배하는 0티어 전략가 👑";
+        }
+        document.getElementById("summaryArchetype").textContent = archetype;
+
+        const listEl = document.getElementById("summaryList");
+        listEl.innerHTML = "";
+
+        AppState.userPicks.forEach((pickData, idx) => {
+          const item = document.createElement("div");
+          item.className = "summary-item";
+          const tagClass = pickData.picked === "A" ? "tag-choice-a" : "tag-choice-b";
+
+          item.innerHTML = `
+            <div class="summary-item-left">
+              <div class="summary-item-q">질문 ${idx + 1}. ${pickData.question}</div>
+              <div class="summary-item-ans">${pickData.choiceInfo.title}</div>
+            </div>
+            <div class="summary-item-tag ${tagClass}">
+              선택 ${pickData.picked}
+            </div>
+          `;
+          listEl.appendChild(item);
+        });
+
+        ScreenRouter.show("summary");
+      },
+
+      restartGame() {
+        AppState.resetGame();
+        this.renderCurrentQuestion();
+        ScreenRouter.show("game");
+      }
+    };
+
+    /* ==========================================================================
+       SECTION 8: 인증 컨트롤러 & 내비게이션 바 동기화
+       ========================================================================== */
+    const AuthUI = {
+      isSignupMode: false,
+
+      init() {
+        this.bindEvents();
+        this.checkExistingSession();
+      },
+
+      bindEvents() {
+        const tabLogin = document.getElementById("tabBtnLogin");
+        const tabSignup = document.getElementById("tabBtnSignup");
+        const authForm = document.getElementById("authForm");
+        const btnLogout = document.getElementById("btnLogout");
+
+        tabLogin.addEventListener("click", () => this.setMode(false));
+        tabSignup.addEventListener("click", () => this.setMode(true));
+        authForm.addEventListener("submit", (e) => this.handleSubmit(e));
+        btnLogout.addEventListener("click", () => this.handleLogout());
+      },
+
+      setMode(isSignup) {
+        this.isSignupMode = isSignup;
+        this.hideError();
+
+        const tabLogin = document.getElementById("tabBtnLogin");
+        const tabSignup = document.getElementById("tabBtnSignup");
+        const submitBtn = document.getElementById("btnAuthSubmit");
+
+        if (isSignup) {
+          tabSignup.classList.add("active");
+          tabLogin.classList.remove("active");
+          submitBtn.textContent = "계정 생성 (회원가입)";
+          submitBtn.className = "btn btn-green auth-submit-btn";
+        } else {
+          tabLogin.classList.add("active");
+          tabSignup.classList.remove("active");
+          submitBtn.textContent = "로그인하기";
+          submitBtn.className = "btn btn-primary auth-submit-btn";
+        }
+      },
+
+      showError(msg) {
+        const errorBox = document.getElementById("authErrorMsg");
+        errorBox.textContent = msg;
+        errorBox.classList.add("visible");
+      },
+
+      hideError() {
+        const errorBox = document.getElementById("authErrorMsg");
+        errorBox.textContent = "";
+        errorBox.classList.remove("visible");
+      },
+
+      async handleSubmit(e) {
+        e.preventDefault();
+        this.hideError();
+
+        const usernameInput = document.getElementById("inputUsername");
+        const passwordInput = document.getElementById("inputPassword");
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+
+        if (!username) {
+          this.showError("사용자 이름을 입력해 주세요.");
+          usernameInput.focus();
+          return;
+        }
+
+        if (username.length < 2) {
+          this.showError("사용자 이름은 최소 2자 이상이어야 합니다.");
+          usernameInput.focus();
+          return;
+        }
+
+        if (!password) {
+          this.showError("비밀번호를 입력해 주세요.");
+          passwordInput.focus();
+          return;
+        }
+
+        if (password.length < 4) {
+          this.showError("비밀번호는 최소 4자 이상이어야 합니다.");
+          passwordInput.focus();
+          return;
+        }
+
+        const submitBtn = document.getElementById("btnAuthSubmit");
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = "0.7";
+
+        try {
+          let loggedInName = "";
+          if (this.isSignupMode) {
+            loggedInName = await AuthService.signup(username, password);
+          } else {
+            loggedInName = await AuthService.login(username, password);
+          }
+
+          this.onLoginSuccess(loggedInName);
+          usernameInput.value = "";
+          passwordInput.value = "";
+        } catch (err) {
+          this.showError(err.message || "인증 처리 중 오류가 발생했습니다.");
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.style.opacity = "1";
+        }
+      },
+
+      onLoginSuccess(username) {
+        AppState.currentUser = username;
+        this.updateNavUser(username);
+        AppState.resetGame();
+        GameController.renderCurrentQuestion();
+        ScreenRouter.show("game");
+      },
+
+      handleLogout() {
+        AuthService.logout();
+        AppState.currentUser = null;
+        this.updateNavUser(null);
+        AppState.resetGame();
+        ScreenRouter.show("login");
+      },
+
+      checkExistingSession() {
+        const existingSession = AuthService.getSession();
+        if (existingSession) {
+          this.onLoginSuccess(existingSession);
+        } else {
+          this.updateNavUser(null);
+          ScreenRouter.show("login");
+        }
+      },
+
+      updateNavUser(username) {
+        const userArea = document.getElementById("navUserArea");
+        const guestArea = document.getElementById("navGuestArea");
+
+        if (username) {
+          userArea.style.display = "flex";
+          guestArea.style.display = "none";
+          document.getElementById("navUserName").textContent = username;
+          document.getElementById("userAvatarChar").textContent = username.charAt(0).toUpperCase();
+        } else {
+          userArea.style.display = "none";
+          guestArea.style.display = "block";
+        }
+      }
+    };
+
+    /* ==========================================================================
+       SECTION 9: 전역 초기화 & 확장 인터페이스 (WINDOW EXTENSION HOOK)
+       ========================================================================== */
+    window.BloxApp = {
+      config: CONFIG,
+      state: AppState,
+      questions: QUESTIONS_DATA,
+      auth: AuthService,
+      router: ScreenRouter,
+      game: GameController,
+
+      registerScreen(name, element) {
+        ScreenRouter.registerScreen(name, element);
+      },
+
+      addQuestions(newQuestionList) {
+        if (Array.isArray(newQuestionList)) {
+          QUESTIONS_DATA.push(...newQuestionList);
+        }
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("dateRangeText").textContent = computeDateRange();
+      GameController.init();
+      AuthUI.init();
+    });
+  </script>
+</body>
+</html>
